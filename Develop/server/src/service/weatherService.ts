@@ -55,12 +55,14 @@ class WeatherService {
   private async fetchLocationData(query: string): Promise<LocationData> {
     const geocodeURL = `https://api.openweathermap.org/geo/1.0/direct?q=${query}&limit=1&appid=${this.apiKey}`;
     const response = await fetch(geocodeURL);
-    const data = await response.json() as LocationData[];  // Explicitly cast to LocationData[]
-    
+    const data = (await response.json()) as LocationData[];
+
+    console.log('Geocode Response:', data); // Debug log
+
     if (data.length === 0) {
       throw new Error('Location not found');
     }
-    
+
     return data[0];
   }
 
@@ -78,13 +80,26 @@ class WeatherService {
   private async fetchWeatherData(coordinates: Coordinates): Promise<WeatherData> {
     const weatherURL = this.buildWeatherQuery(coordinates);
     const response = await fetch(weatherURL);
-    const data = await response.json() as WeatherData;  // Explicitly cast to WeatherData
+    const data = (await response.json()) as WeatherData;
+
+    console.log('Weather API Response:', data); // Debug log
+
     return data;
   }
 
   private parseCurrentWeather(data: WeatherData): Weather {
     const current = data.list[0];
-    const forecast = data.list.slice(1, 6);
+    const forecast = data.list.slice(1, 6).map((item) => ({
+      date: new Date(item.dt_txt).toLocaleDateString(),
+      tempF: item.main.temp,
+      windSpeed: item.wind.speed,
+      humidity: item.main.humidity,
+      icon: item.weather[0].icon,
+      iconDescription: item.weather[0].description,
+    }));
+
+    console.log('Formatted Weather Data:', current, forecast); // Debug log
+
     return new Weather(
       data.city.name,
       current.main.temp,

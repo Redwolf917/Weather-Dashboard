@@ -40,16 +40,21 @@ const fetchWeather = async (cityName: string) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ cityName }),
+    body: JSON.stringify({ city: cityName }),
   });
 
   const weatherData = await response.json();
 
-  console.log('weatherData: ', weatherData);
+  console.log('Weather Data Received by Frontend:', weatherData); // Debug log
 
-  renderCurrentWeather(weatherData[0]);
-  renderForecast(weatherData.slice(1));
+  if (!weatherData || !weatherData.forecast) {
+    throw new Error('Invalid weather data received from backend');
+  }
+
+  renderCurrentWeather(weatherData);
+  renderForecast(weatherData.forecast);
 };
+
 
 const fetchSearchHistory = async () => {
   const history = await fetch('/api/weather/history', {
@@ -77,27 +82,27 @@ Render Functions
 */
 
 const renderCurrentWeather = (currentWeather: any): void => {
-  const { city, date, icon, iconDescription, tempF, windSpeed, humidity } =
-    currentWeather;
+  const { cityName, temperature, windSpeed, humidity, forecast } = currentWeather;
 
-  // convert the following to typescript
-  heading.textContent = `${city} (${date})`;
-  weatherIcon.setAttribute(
-    'src',
-    `https://openweathermap.org/img/w/${icon}.png`
-  );
+  // Use the first item in the forecast array for today's data
+  const { date, icon, iconDescription } = forecast[0];
+
+  // Update DOM elements with the received data
+  heading.textContent = `${cityName} (${date})`;
+  weatherIcon.setAttribute('src', `https://openweathermap.org/img/w/${icon}.png`);
   weatherIcon.setAttribute('alt', iconDescription);
   weatherIcon.setAttribute('class', 'weather-img');
-  heading.append(weatherIcon);
-  tempEl.textContent = `Temp: ${tempF}°F`;
+  tempEl.textContent = `Temp: ${temperature}°F`;
   windEl.textContent = `Wind: ${windSpeed} MPH`;
-  humidityEl.textContent = `Humidity: ${humidity} %`;
+  humidityEl.textContent = `Humidity: ${humidity}%`;
 
+  // Clear and append updated elements to the container
   if (todayContainer) {
-    todayContainer.innerHTML = '';
+    todayContainer.innerHTML = ''; // Clear any existing content
     todayContainer.append(heading, tempEl, windEl, humidityEl);
   }
 };
+
 
 const renderForecast = (forecast: any): void => {
   const headingCol = document.createElement('div');

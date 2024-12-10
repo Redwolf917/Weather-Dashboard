@@ -1,47 +1,48 @@
-import { readFile, writeFile } from 'fs/promises';
-import { v4 as uuidv4 } from 'uuid';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-class City {
-  id: string;
-  name: string;
-
-  constructor(name: string) {
-    this.id = uuidv4();
-    this.name = name;
-  }
-}
+// Define __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class HistoryService {
-  private historyFilePath = './server/db/searchHistory.json';
+  private filePath = path.resolve(__dirname, '../../db/searchHistory.json');
 
-  private async read(): Promise<City[]> {
+  async read(): Promise<any[]> {
     try {
-      const data = await readFile(this.historyFilePath, 'utf8');
+      const data = await fs.readFile(this.filePath, 'utf-8');
       return JSON.parse(data);
     } catch (error) {
+      console.error('Error reading history file:', error);
       return [];
     }
   }
 
-  private async write(cities: City[]): Promise<void> {
-    await writeFile(this.historyFilePath, JSON.stringify(cities, null, 2));
+  async write(data: any[]): Promise<void> {
+    try {
+      await fs.writeFile(this.filePath, JSON.stringify(data, null, 2));
+    } catch (error) {
+      console.error('Error writing history file:', error);
+    }
   }
 
-  async getCities(): Promise<City[]> {
-    return this.read();
+  async addCity(city: string): Promise<void> {
+    const history = await this.read();
+    if (!history.includes(city)) {
+      history.push(city);
+      await this.write(history);
+    }
   }
 
-  async addCity(cityName: string): Promise<void> {
-    const cities = await this.read();
-    const newCity = new City(cityName);
-    cities.push(newCity);
-    await this.write(cities);
+  async getCities(): Promise<string[]> {
+    return await this.read();
   }
 
-  async removeCity(id: string): Promise<void> {
-    let cities = await this.read();
-    cities = cities.filter(city => city.id !== id);
-    await this.write(cities);
+  async removeCity(city: string): Promise<void> {
+    const history = await this.read();
+    const updatedHistory = history.filter((c) => c !== city);
+    await this.write(updatedHistory);
   }
 }
 
